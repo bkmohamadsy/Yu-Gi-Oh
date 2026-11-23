@@ -22,10 +22,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Godot 4.4.1
+      - name: Setup Godot 4.4.1 Standard
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.4.1
+          use-dotnet: false
           include-templates: true
 
       - name: Configure Godot Android SDK Path & Debug Keystore
@@ -52,10 +53,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Godot 4.4.1
+      - name: Setup Godot 4.4.1 Standard
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.4.1
+          use-dotnet: false
           include-templates: true
 
       - name: Export iOS Xcode Project
