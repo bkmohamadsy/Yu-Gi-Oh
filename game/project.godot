@@ -56,7 +56,10 @@ window/size/viewport_height=600
 window/size/mode=2
 window/size/window_width_override=1200
 window/size/window_height_override=900
+window/handheld/orientation=0
 window/stretch/mode="canvas_items"
+window/stretch/aspect="ignore"
+
 
 [input_devices]
 
