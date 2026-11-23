@@ -29,16 +29,11 @@ jobs:
           use-dotnet: false
           include-templates: true
 
-      - name: Configure Godot Android SDK Path & Debug Keystore
-        run: |
-          keytool -genkey -v -keystore ~/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          mkdir -p ~/.config/godot
-          printf '[gd_resource type="EditorSettings" format=3]\n[resource]\nexport/android/android_sdk_path = "%s"\nexport/android/debug_keystore = "/home/runner/debug.keystore"\nexport/android/debug_keystore_user = "androiddebugkey"\nexport/android/debug_keystore_pass = "android"\n' "$ANDROID_HOME" > ~/.config/godot/editor_settings-4.tres
-
-      - name: Export Android APK
+      - name: Build Android APK via Project Builder
         run: |
           mkdir -p artifacts/android
-          godot --headless --path game --export-release "Android Tablet" ../artifacts/android/PowerOfChaos-Android.apk
+          keytool -genkey -v -keystore ~/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          python3 tools/android/build_apk.py --work ~/android_work --godot $(which godot) --sdk "$ANDROID_HOME" --debug-keystore ~/debug.keystore --first-build --output artifacts/android/PowerOfChaos-Android.apk
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
