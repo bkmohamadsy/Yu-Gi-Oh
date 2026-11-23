@@ -49,6 +49,10 @@ func _resolve_data_dir() -> String:
 	var override := cmdline_value("data")
 	if override != "":
 		return override
+	if FileAccess.file_exists("res://data/inventory.json"):
+		content_pack_persistent = true
+		return "res://data"
+
 	if ProjectSettings.load_resource_pack("res://bundled_data.pck", false):
 		return "res://data"
 	if OS.has_feature("android"):
@@ -71,10 +75,10 @@ func _resolve_data_dir() -> String:
 		if FileAccess.file_exists(previous.path_join("inventory.json")):
 			migration_source = previous
 			return previous
-	# Los fixtures/desarrollo no se trasladan automáticamente al abrir el editor.
 	if OS.has_feature("editor") and FileAccess.file_exists(_base_dir().path_join("data/inventory.json")):
 		return _base_dir().path_join("data")
 	return portable
+
 
 
 
