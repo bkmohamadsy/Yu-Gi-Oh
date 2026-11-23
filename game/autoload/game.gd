@@ -33,7 +33,6 @@ var match_duel := 1
 var match_results := [0, 0, 0]
 var match_outcome := 0
 var _screen: Node
-var _global_back_btn: Button
 var _screen_replay_frame := 0
 var _screen_host: Node
 var _scene_wipe: Node
@@ -147,7 +146,6 @@ func goto(screen: Node) -> void:
 	elif is_instance_valid(_screen):
 		_screen.queue_free()
 	_screen = screen
-	_ensure_back_button()
 	_screen_replay_frame = Debug._frame
 	get_tree().root.content_scale_aspect = LauncherSettings.gameplay_aspect()
 	Engine.time_scale = LauncherSettings.simulation_speed if current_game != "" else 1.0
@@ -517,23 +515,3 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_RESUMED:
 		if Assets.has_method("reload"):
 			Assets.reload()
-
-func _ensure_back_button() -> void:
-	if not is_instance_valid(_screen) or current_game == "":
-		return
-	var in_duel: bool = _screen.get_script() != null and _screen.get_script().resource_path.contains("duel")
-	if in_duel:
-		return
-	var btn := Button.new()
-	btn.text = "رجوع ↩"
-	btn.position = Vector2(18, 56)
-	btn.size = Vector2(110, 42)
-	btn.pressed.connect(_on_global_back_pressed)
-	_screen.add_child(btn)
-
-func _on_global_back_pressed() -> void:
-	if not is_instance_valid(_screen): return
-	if _screen.has_method("_leave"):
-		_screen._leave()
-	elif current_game != "":
-		open_title(current_game)
