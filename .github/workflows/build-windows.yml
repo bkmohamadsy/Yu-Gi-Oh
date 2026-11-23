@@ -1,0 +1,142 @@
+name: Launcher Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: tools/pyproject.toml
+      - name: Comprobar fuentes publicables
+        run: python tools/build_windows.py --audit
+      - name: Instalar herramientas del conversor
+        run: python -m pip install ./tools pyinstaller==6.22.3
+      - name: Probar importador sin recursos originales
+        env:
+          PYTHONPATH: tools
+        run: |
+          python -m unittest discover -s tools/tests -p 'test_*import.py' -v
+          python -m unittest discover -s tools/tests -p test_android_builder.py -v
+          python -m unittest discover -s tools/tests -p test_android_toolchain.py -v
+          python -m unittest discover -s tools/tests -p test_updater.py -v
+          python -m unittest discover -s tools/tests -p test_card_translations.py -v
+          python -m unittest discover -s tools/tests -p test_reviewed_card_pack.py -v
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.tool_cache }}/poc-godot-4.7.2
+          key: godot-windows-4.7.2-verified-v2
+      # El secreto del cliente OAuth de Google Drive tampoco se publica: se escribe en
+      # project.godot solo en el runner, antes de exportar el APK y el EXE.
+      # Dos clientes: el de dispositivo (codigo) y el de escritorio (navegador, sin codigo). Cada
+      # linea se sustituye anclada: client_secret="" tambien aparece dentro de desktop_client_secret.
+      - name: Anadir el cliente de Google Drive
+        env:
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_DESKTOP_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_DESKTOP_CLIENT_SECRET }}
+        run: |
+          $path = "game/project.godot"
+          $text = [IO.File]::ReadAllText($path)
+          if ($env:GOOGLE_OAUTH_CLIENT_SECRET) {
+            if (-not [regex]::IsMatch($text, '(?m)^client_secret=""')) { throw "project.godot debe llevar client_secret vacio" }
+            $text = [regex]::Replace($text, '(?m)^client_secret=""', { 'client_secret="' + $env:GOOGLE_OAUTH_CLIENT_SECRET + '"' })
+          } elseif ($env:GITHUB_REF -like "refs/tags/*") {
+            throw "Falta el secreto GOOGLE_OAUTH_CLIENT_SECRET: una version debe incluir la sincronizacion con Drive"
+          }
+          if ($env:GOOGLE_OAUTH_DESKTOP_CLIENT_SECRET) {
+            if (-not [regex]::IsMatch($text, '(?m)^desktop_client_secret=""')) { throw "project.godot debe llevar desktop_client_secret vacio" }
+            $text = [regex]::Replace($text, '(?m)^desktop_client_secret=""', { 'desktop_client_secret="' + $env:GOOGLE_OAUTH_DESKTOP_CLIENT_SECRET + '"' })
+          } else {
+            Write-Warning "Sin GOOGLE_OAUTH_DESKTOP_CLIENT_SECRET: Drive se vincula con el codigo de google.com/device"
+          }
+          [IO.File]::WriteAllText($path, $text)
+      # La clave de firma solo existe como secreto del repositorio. Sin ella (forks) se compila
+      # con una clave desechable para comprobar el APK, pero una etiqueta exige la publicada.
+      - name: Compilar y firmar APK Android
+        env:
+          ANDROID_SIGNING_KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
+        run: |
+          $signing = @()
+          if ($env:ANDROID_SIGNING_KEYSTORE) {
+            $key = Join-Path $env:RUNNER_TEMP "signing.keystore"
+            [IO.File]::WriteAllBytes($key, [Convert]::FromBase64String($env:ANDROID_SIGNING_KEYSTORE))
+            $signing = @("--keystore", $key)
+          } elseif ($env:GITHUB_REF -like "refs/tags/*") {
+            throw "Falta el secreto ANDROID_SIGNING_KEYSTORE: una versión debe firmarse con la clave publicada"
+          }
+          python tools/build_android.py --engine-cache "${{ runner.tool_cache }}/poc-godot-4.7.2" --out "$env:RUNNER_TEMP/android" @signing
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Borrar la clave de firma del runner
+        if: always()
+        run: Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP "signing.keystore")
+      - name: Compilar launcher y conversor local
+        run: python tools/build_windows.py --engine-cache "${{ runner.tool_cache }}/poc-godot-4.7.2" --out dist/windows --android "$env:RUNNER_TEMP/android"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: PowerOfChaos-Windows
+          path: |
+            dist/windows/PowerOfChaos.exe
+            dist/windows/PowerOfChaos.exe.sha256
+            dist/windows/BUILD_MANIFEST.json
+            dist/windows/PowerOfChaos-Android.apk
+            dist/windows/PowerOfChaos-Android.apk.sha256
+            dist/windows/ANDROID_RELEASE.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Conservar diagnóstico de compilación
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-build-logs
+          path: |
+            dist/windows/logs/
+            ${{ runner.temp }}/android/work/build/*.log
+            ${{ runner.temp }}/android/work/build/*.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: PowerOfChaos-Windows
+          path: release-files
+      - name: Preparar las notas de la etiqueta
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 tools/pocx/release_notes.py RELEASE_NOTES.md "$RELEASE_TAG" release-body.md
+      - name: Publicar preliminar de la etiqueta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-files/* --clobber
+            gh release edit "$RELEASE_TAG" --notes-file release-body.md
+          else
+            gh release create "$RELEASE_TAG" release-files/* --verify-tag --notes-file release-body.md --prerelease --title "$RELEASE_TAG"
+          fi

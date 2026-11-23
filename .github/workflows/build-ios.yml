@@ -1,0 +1,49 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.2 and Export Templates
+        run: |
+          mkdir -p ~/godot_tools
+          cd ~/godot_tools
+          curl -L -o godot.zip "https://github.com"
+          unzip -q godot.zip
+          mkdir -p ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable
+          curl -L -o templates.tpz "https://github.com"
+          unzip -q templates.tpz
+          mv templates/* ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable/
+
+      - name: Export iOS Xcode Project from Godot
+        run: |
+          mkdir -p artifacts/ios
+          ~/godot_tools/Godot.app/Contents/MacOS/Godot --headless --path game --export-release "iOS" ../artifacts/ios/PowerOfChaos.xcodeproj
+
+      - name: Build Unsigned IPA via Xcode
+        run: |
+          cd artifacts/ios
+          xcodebuild -project PowerOfChaos.xcodeproj -scheme PowerOfChaos -configuration Release -sdk iphoneos CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO CONFIGURATION_BUILD_DIR=build
+          mkdir -p Payload
+          cp -r build/PowerOfChaos.app Payload/
+          zip -r PowerOfChaos-iOS.ipa Payload
+
+      - name: Upload iOS IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerOfChaos-iOS
+          path: artifacts/ios/PowerOfChaos-iOS.ipa
+          if-no-files-found: error
+          retention-days: 30
