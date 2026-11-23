@@ -1,4 +1,4 @@
-name: Build iOS IPA
+name: Build Mobile Apps (iOS & Android)
 
 on:
   push:
@@ -9,6 +9,63 @@ permissions:
   contents: read
 
 jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android Build Tools & Platform
+        run: |
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Setup Godot 4.7.2 & Templates
+        run: |
+          mkdir -p ~/godot_tools ~/.local/share/godot/export_templates/4.7.2.stable
+          cd ~/godot_tools
+          curl -fSL -o godot.zip "https://github.com" || curl -fSL -o godot.zip "https://github.com"
+          unzip -q godot.zip
+          mv Godot_v* godot_bin
+          chmod +x godot_bin
+          curl -fSL -o templates.tpz "https://github.com" || curl -fSL -o templates.tpz "https://github.com"
+          unzip -q templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.7.2.stable/
+          cp -r ~/.local/share/godot/export_templates/4.7.2.stable ~/.local/share/godot/export_templates/4.6.stable
+
+      - name: Configure Godot Android SDK Path & Debug Keystore
+        run: |
+          keytool -genkey -v -keystore ~/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          mkdir -p ~/.config/godot
+          cat << 'EOF' > ~/.config/godot/editor_settings-4.tres
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "/usr/local/lib/android/sdk"
+          export/android/debug_keystore = "/home/runner/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+
+      - name: Export Android APK
+        run: |
+          mkdir -p artifacts/android
+          ~/godot_tools/godot_bin --headless --path game --export-release "Android Tablet" ../artifacts/android/PowerOfChaos-Android.apk
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerOfChaos-Android
+          path: artifacts/android/PowerOfChaos-Android.apk
+
   build-ios:
     runs-on: macos-latest
     timeout-minutes: 40
@@ -16,18 +73,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download Godot 4.7.2 and Export Templates
+      - name: Setup Godot 4.7.2 & Templates
         run: |
-          mkdir -p ~/godot_tools
+          mkdir -p ~/godot_tools ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable
           cd ~/godot_tools
-          curl -L -o godot.zip "https://github.com"
+          curl -fSL -o godot.zip "https://github.com" || curl -fSL -o godot.zip "https://github.com"
           unzip -q godot.zip
-          mkdir -p ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable
-          curl -L -o templates.tpz "https://github.com"
+          curl -fSL -o templates.tpz "https://github.com" || curl -fSL -o templates.tpz "https://github.com"
           unzip -q templates.tpz
           mv templates/* ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable/
+          cp -r ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable ~/Library/Application\ Support/Godot/export_templates/4.6.stable
 
-      - name: Export iOS Xcode Project from Godot
+      - name: Export iOS Xcode Project
         run: |
           mkdir -p artifacts/ios
           ~/godot_tools/Godot.app/Contents/MacOS/Godot --headless --path game --export-release "iOS" ../artifacts/ios/PowerOfChaos.xcodeproj
@@ -40,10 +97,8 @@ jobs:
           cp -r build/PowerOfChaos.app Payload/
           zip -r PowerOfChaos-iOS.ipa Payload
 
-      - name: Upload iOS IPA Artifact
+      - name: Upload iOS IPA
         uses: actions/upload-artifact@v4
         with:
           name: PowerOfChaos-iOS
           path: artifacts/ios/PowerOfChaos-iOS.ipa
-          if-no-files-found: error
-          retention-days: 30
