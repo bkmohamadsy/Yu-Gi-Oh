@@ -43,8 +43,8 @@ jobs:
           path: artifacts/android/PowerOfChaos-Android.apk
 
   build-ios:
-    runs-on: macos-latest
-    timeout-minutes: 40
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,7 +60,7 @@ jobs:
         run: |
           mkdir -p artifacts/ios/Payload
           godot --headless --path game --export-pack "iOS" ../artifacts/ios/game.pck
-          TEMPLATE_ZIP=$(find "$HOME/Library/Application Support/Godot/export_templates" -name "iphone.zip" | head -n 1)
+          TEMPLATE_ZIP=$(find "$HOME/.local/share/godot/export_templates" -name "iphone.zip" | head -n 1)
           unzip -q "$TEMPLATE_ZIP" -d artifacts/ios/tpl
           APP_DIR=$(find artifacts/ios/tpl -name "*.app" | head -n 1)
           cp -r "$APP_DIR" artifacts/ios/Payload/PowerOfChaos.app
