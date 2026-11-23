@@ -411,7 +411,7 @@ func _on_peer_connected(id: int) -> void:
 	var payload := PackedByteArray()
 	payload.resize(2)
 	payload.encode_u16(0, HELLO)
-	payload.append_array(("%s\n%s\n%s" % [MAGIC, game, local_name]).to_utf8_buffer())
+	payload.append_array(("%s\n%s\n%s\n%s" % [MAGIC, game, local_name, _my_legendary_str()]).to_utf8_buffer())
 	_peer.set_transfer_mode(MultiplayerPeer.TRANSFER_MODE_RELIABLE)
 	_peer.set_transfer_channel(0)
 	_peer.set_target_peer(id)
@@ -517,3 +517,33 @@ func _found(host_name: String, address: String, port: int) -> void:
 func _same_machine(a: String, b: String) -> bool:
 	var local := IP.get_local_addresses()
 	return (a == "127.0.0.1" or local.has(a)) and (b == "127.0.0.1" or local.has(b))
+
+
+func _my_legendary_list() -> Array:
+	var d := SaveData.deck(game)
+	var res := Array()
+	for cid_v in d.get("main", []):
+		var cid := int(cid_v)
+		if cid in [1924, 1925, 1926, 1927, 1928, 1929, 1930] and not res.has(cid):
+			res.append(cid)
+	for cid_v in d.get("side", []):
+		var cid := int(cid_v)
+		if cid in [1924, 1925, 1926, 1927, 1928, 1929, 1930] and not res.has(cid):
+			res.append(cid)
+	return res
+
+func _my_legendary_str() -> String:
+	var arr := PackedStringArray()
+	for cid in _my_legendary_list(): arr.append(str(cid))
+	return ",".join(arr)
+
+func _legendary_title(cid: int) -> String:
+	match cid:
+		1924: return "سلايفر التنين الفضائي"
+		1925: return "العملاق المعذب"
+		1926: return "تنين رع المجنح"
+		1927: return "ختم أوريكالكوس"
+		1928: return "فارس الأسطورة تيمايوس"
+		1929: return "فارس الأسطورة كريتوس"
+		1930: return "فارس الأسطورة هيرموس"
+	return "بطاقة أسطورية"

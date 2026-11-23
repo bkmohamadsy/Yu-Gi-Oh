@@ -1334,12 +1334,31 @@ func _leave() -> void:
 	if not _deck_valid(_deck):
 		_message("deckerror", "dlg_ok_ok_derr")
 		return
+	var all_ids := Array()
+	for cid_v in _deck.get("main", []): all_ids.append(int(cid_v))
+	for cid_v in _deck.get("side", []): all_ids.append(int(cid_v))
+	var has_ori := all_ids.has(1927)
+	var has_light := false
+	for lid in:
+		if all_ids.has(lid): has_light = true
+	if has_ori and has_light:
+		var w := AcceptDialog.new()
+		w.title = "تنبيه قوانين المجموعة"
+		w.dialog_text = "ممنوع الجمع بين ختم أوريكالكوس ووحوش الأهرام أو فرسان الأسطورة في نفس المجموعة!"
+		w.confirmed.connect(w.queue_free)
+		add_child(w)
+		w.popup_centered()
+		return
 	if _dirty:
 		SaveData.set_deck(game, _deck.duplicate(true))
 	_save_settings()
 	SaveData.save()
 	Audio.play_sfx("%s/voice/internal/return.wav" % game)
-	Game.open_title(game, "deck")
+	if Lan.has_meta("return_to_lan") and bool(Lan.get_meta("return_to_lan")):
+		Lan.set_meta("return_to_lan", false)
+		Game.goto(load("res://scenes/lan/lan_connect.gd").new(game))
+	else:
+		Game.open_title(game, "deck")
 
 
 func _set_filter(filter: String) -> void:

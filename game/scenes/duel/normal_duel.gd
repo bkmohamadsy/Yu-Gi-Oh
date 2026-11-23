@@ -227,6 +227,7 @@ func _process(_delta: float) -> void:
 	if not _duel.list_open.is_empty():
 		_show_list()
 		return
+	if (_press_bits & 1) != 0 and not _hover_card.is_empty(): _handle_legendary_click()
 	var hover := _hover_input()
 	var phase_hover := _phase_hover()
 	for _i in range(steps):
@@ -615,3 +616,56 @@ func _unhandled_input(event: InputEvent) -> void:
 		if not PointerGlide.drove(event.position):
 			PointerGlide.cancel()
 			_duel.ui_key_cursor = false
+
+var _trinity_dialog_open := false
+
+func _handle_legendary_click() -> void:
+	if _trinity_dialog_open: return
+	if int(_hover_card.get("p", -1)) != 0: return
+	var loc := int(_hover_card.get("loc", -1))
+	if loc < 0 or loc > 4: return
+	var z_addr := DuelMem.PLAYER + DuelMem.P_ZONES + loc * DuelMem.ZONE_SIZE
+	var c_idx := _duel.m.u16(z_addr + 0x10) & 0xfff
+	if c_idx == 0: return
+	var cid := _duel.cards.id_of(c_idx)
+	if cid == 1925 and _duel.has_method("activate_obelisk_fury"):
+		_duel.activate_obelisk_fury(0)
+	elif cid == 1926 and _duel.has_method("activate_ra_transfer"):
+		_duel.activate_ra_transfer(0)
+	elif cid == 1928 or cid == 1929 or cid == 1930:
+		if _duel.has_method("has_all_three_knights") and _duel.has_all_three_knights(0):
+			_prompt_trinity_knights(1)
+		elif _duel.has_method("activate_single_knight"):
+			_duel.activate_single_knight(cid)
+
+func _prompt_trinity_knights(step: int) -> void:
+	_trinity_dialog_open = true
+	var dlg := ConfirmationDialog.new()
+	dlg.ok_button_text = "تم"
+	dlg.cancel_button_text = "إلغاء"
+	if step == 1:
+		dlg.title = "اتحاد فرسان الأسطورة"
+		dlg.dialog_text = "تيمايوس فعّل قدرته! هل تريد تفعيل قدرة كريتوس؟"
+		dlg.confirmed.connect(func():
+			dlg.queue_free()
+			_prompt_trinity_knights(2)
+		)
+		dlg.canceled.connect(func():
+			dlg.queue_free()
+			_trinity_dialog_open = false
+		)
+	else:
+		dlg.title = "الضربة النهائية للفرسان"
+		dlg.dialog_text = "تم تفعيل قدرة كريتوس! هل تريد تفعيل قدرة هيرموس لهزيمة الخصم فوراً؟"
+		dlg.confirmed.connect(func():
+			dlg.queue_free()
+			_trinity_dialog_open = false
+			if _duel.has_method("trigger_trinity_knights_win"):
+				_duel.trigger_trinity_knights_win()
+		)
+		dlg.canceled.connect(func():
+			dlg.queue_free()
+			_trinity_dialog_open = false
+		)
+	add_child(dlg)
+	dlg.popup_centered()

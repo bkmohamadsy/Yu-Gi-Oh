@@ -697,59 +697,79 @@ func f40fe20() -> int:
 ## FUN_00460f80: ficha del panel de fases bajo el cursor (0-5) o -1.
 func f460f80() -> int:
 	return ui_phase_hover
-var _orichalcos_saved := [-1, -1]
-var _obelisk_fury_turn := [-1, -1]
-var _ra_boost_turn := [-1, -1]
-var _ra_boost_val := [0, 0]
 
 var _orichalcos_saved := [-1, -1]
 var _obelisk_fury_turn := [-1, -1]
 var _ra_boost_turn := [-1, -1]
-var _ra_boost_val := [0, 0]
+var _ra_boost_val := Array()
+var _knight_active_turn := [-1, -1, -1]
 
-var _orichalcos_saved := [-1, -1]
-var _obelisk_fury_turn := [-1, -1]
-var _ra_boost_turn := [-1, -1]
-var _ra_boost_val :=
+func activate_obelisk_fury(p: int = 0) -> void:
+	_obelisk_fury_turn[p] = m.u16(0xa15940)
+	_apply_legendary_cards()
+
+func activate_ra_transfer(p: int = 0) -> void:
+	var current_turn := m.u16(0xa15940)
+	var p_base := DuelMem.PLAYER + p * DuelMem.PLAYER_SIZE
+	var lp := m.u16(p_base + DuelMem.P_LP)
+	if lp > 100:
+		while _ra_boost_val.size() < 2: _ra_boost_val.append(0)
+		_ra_boost_val[p] = lp - 100
+		m.set_u16(p_base + DuelMem.P_LP, 100)
+		_ra_boost_turn[p] = current_turn
+		_apply_legendary_cards()
+
+func activate_single_knight(cid: int) -> void:
+	var opp_field := DuelMem.PLAYER + DuelMem.PLAYER_SIZE + DuelMem.P_ZONES + 10 * DuelMem.ZONE_SIZE
+	var f_idx := m.u16(opp_field + 0x10) & 0xfff
+	if f_idx > 0 and cards.id_of(f_idx) == 1927:
+		m.set_u16(opp_field + 0x10, 0)
+		_orichalcos_saved = -1
+	var current_turn := m.u16(0xa15940)
+	if cid == 1928: _knight_active_turn = current_turn
+	elif cid == 1929: _knight_active_turn = current_turn
+	elif cid == 1930: _knight_active_turn = current_turn
+	_apply_legendary_cards()
+
+func trigger_trinity_knights_win() -> void:
+	var opp_base := DuelMem.PLAYER + DuelMem.PLAYER_SIZE
+	m.set_u16(opp_base + DuelMem.P_LP, 0)
+
+func has_all_three_knights(p: int = 0) -> bool:
+	var p_base := DuelMem.PLAYER + p * DuelMem.PLAYER_SIZE
+	var t := false; var c := false; var h := false
+	for z in 5:
+		var idx := m.u16(p_base + DuelMem.P_ZONES + z * DuelMem.ZONE_SIZE + 0x10) & 0xfff
+		if idx > 0:
+			var cid := cards.id_of(idx)
+			if cid == 1928: t = true
+			elif cid == 1929: c = true
+			elif cid == 1930: h = true
+	return t and c and h
 
 func _apply_legendary_cards() -> void:
+	while _ra_boost_val.size() < 2: _ra_boost_val.append(0)
 	var current_turn := m.u16(0xa15940)
 	for p in 2:
 		var p_base := DuelMem.PLAYER + p * DuelMem.PLAYER_SIZE
 		var opp_base := DuelMem.PLAYER + (1 - p) * DuelMem.PLAYER_SIZE
 		var hand_count := m.u8(p_base + DuelMem.P_HAND_N)
-
-		# 1. فحص وحوش الملعب (المناطق 0..4) عند الخصم وعند اللاعب
 		var opp_has_knight := false
 		var max_field_atk := 2800
 		var my_monsters_count := 0
-		var has_timaeus := false
-		var has_critias := false
-		var has_hermos := false
-
 		for z in 5:
 			var my_z := p_base + DuelMem.P_ZONES + z * DuelMem.ZONE_SIZE
 			var my_idx := m.u16(my_z + 0x10) & 0xfff
 			if my_idx > 0:
 				my_monsters_count += 1
-				var my_cid := cards.id_of(my_idx)
-				if my_cid == 1928: has_timaeus = true
-				elif my_cid == 1929: has_critias = true
-				elif my_cid == 1930: has_hermos = true
 				max_field_atk = maxi(max_field_atk, m.u16(my_z + 0x4c))
-
 			var opp_z := opp_base + DuelMem.P_ZONES + z * DuelMem.ZONE_SIZE
 			var opp_idx := m.u16(opp_z + 0x10) & 0xfff
 			if opp_idx > 0:
 				max_field_atk = maxi(max_field_atk, m.u16(opp_z + 0x4c))
-				if cards.id_of(opp_idx) in:
+				var ocid := cards.id_of(opp_idx)
+				if ocid == 1928 or ocid == 1929 or ocid == 1930:
 					opp_has_knight = true
-
-		# 2. اجتماع الفرسان الثلاثة (تيمايوس + كريتوس + هيرموس) = خسارة الخصم فوراً!
-		if has_timaeus and has_critias and has_hermos:
-			m.set_u16(opp_base + DuelMem.P_LP, 0)
-
-		# 3. حماية ختم أوريكالكوس (1927) وكسره فقط عند استدعاء الخصم لأحد الفرسان الثلاثة
 		var field_zone := p_base + DuelMem.P_ZONES + 10 * DuelMem.ZONE_SIZE
 		var field_idx := m.u16(field_zone + 0x10) & 0xfff
 		if field_idx > 0 and cards.id_of(field_idx) == 1927:
@@ -761,48 +781,39 @@ func _apply_legendary_cards() -> void:
 		elif _orichalcos_saved[p] > 0 and not opp_has_knight:
 			m.set_u16(field_zone + 0x10, _orichalcos_saved[p])
 			field_idx = _orichalcos_saved[p]
-
 		var has_orichalcos := (field_idx > 0 and cards.id_of(field_idx) == 1927)
-
-		# 4. قدرة كريتوس (1929): تعطيل وتدمير أوراق فخ الخصم في المناطق 5..9
-		if has_critias:
+		if has_orichalcos:
+			for sz_i in 5:
+				var sz_a := p_base + DuelMem.P_ZONES + sz_i * DuelMem.ZONE_SIZE
+				var sc_idx := m.u16(sz_a + 0x10) & 0xfff
+				if sc_idx > 0:
+					var scid := cards.id_of(sc_idx)
+					if scid == 1924 or scid == 1925 or scid == 1926 or scid == 1928 or scid == 1929 or scid == 1930:
+						m.set_u16(sz_a + 0x10, 0)
+		if p == 0 and _knight_active_turn == current_turn:
 			for osz in range(5, 10):
 				var osz_addr := opp_base + DuelMem.P_ZONES + osz * DuelMem.ZONE_SIZE
 				var osz_idx := m.u16(osz_addr + 0x10) & 0xfff
-				if osz_idx > 0 and cards.category_of(osz_idx) == "trap":
+				if osz_idx > 0 and ((cards.prop(osz_idx) >> 20) & 0x1f) == 21:
 					m.set_u16(osz_addr + 0x10, 0)
-
-		# 5. تحديث نقاط الهجوم والدفاع لجميع وحوش اللاعب (0..4)
 		for z in 5:
 			var z_addr := p_base + DuelMem.P_ZONES + z * DuelMem.ZONE_SIZE
 			var c_idx := m.u16(z_addr + 0x10) & 0xfff
-			if c_idx == 0:
-				continue
+			if c_idx == 0: continue
 			var cid := cards.id_of(c_idx)
 			var ori_bonus := 500 if has_orichalcos else 0
-
-			if cid == 1924: # سلايفر التنين الفضائي
+			if cid == 1924:
 				var slifer_power := hand_count * 1000 + ori_bonus
 				m.set_u16(z_addr + 0x4c, slifer_power)
 				m.set_u16(z_addr + 0x50, slifer_power)
-
-			elif cid == 1925: # العملاق المعذب (قبضة الغضب 10000 لدور واحد)
-				if _obelisk_fury_turn[p] == -1:
-					_obelisk_fury_turn[p] = current_turn
+			elif cid == 1925:
 				if _obelisk_fury_turn[p] == current_turn:
 					m.set_u16(z_addr + 0x4c, 10000)
 					m.set_u16(z_addr + 0x50, 4000)
 				else:
 					m.set_u16(z_addr + 0x4c, 4000 + ori_bonus)
 					m.set_u16(z_addr + 0x50, 4000)
-
-			elif cid == 1926: # تنين رع المجنح (يبقي 100 نقطة حياة ويضيف الفارق لدور واحد)
-				if _ra_boost_turn[p] == -1:
-					var lp := m.u16(p_base + DuelMem.P_LP)
-					if lp > 100:
-						_ra_boost_val[p] = lp - 100
-						m.set_u16(p_base + DuelMem.P_LP, 100)
-					_ra_boost_turn[p] = current_turn
+			elif cid == 1926:
 				if _ra_boost_turn[p] == current_turn:
 					var ra_power := 4000 + _ra_boost_val[p] + ori_bonus
 					m.set_u16(z_addr + 0x4c, ra_power)
@@ -810,13 +821,16 @@ func _apply_legendary_cards() -> void:
 				else:
 					m.set_u16(z_addr + 0x4c, 4000 + ori_bonus)
 					m.set_u16(z_addr + 0x50, 4000)
-
-			elif cid == 1928: # تيمايوس (ينسخ أعلى هجوم في الملعب)
-				m.set_u16(z_addr + 0x4c, max_field_atk + ori_bonus)
-
-			elif cid == 1930: # هيرموس (+1000 لكل وحش في ملعبك)
-				m.set_u16(z_addr + 0x4c, 2800 + (my_monsters_count * 1000) + ori_bonus)
-
+			elif cid == 1928:
+				if p == 0 and _knight_active_turn == current_turn:
+					m.set_u16(z_addr + 0x4c, max_field_atk + ori_bonus)
+				else:
+					m.set_u16(z_addr + 0x4c, 2800 + ori_bonus)
+			elif cid == 1930:
+				if p == 0 and _knight_active_turn == current_turn:
+					m.set_u16(z_addr + 0x4c, 2800 + (my_monsters_count * 1000) + ori_bonus)
+				else:
+					m.set_u16(z_addr + 0x4c, 2800 + ori_bonus)
 			elif has_orichalcos:
 				var cur_atk := m.u16(z_addr + 0x4c)
 				if cur_atk > 0 and (cur_atk % 500) != 0:
