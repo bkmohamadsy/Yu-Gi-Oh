@@ -73,6 +73,9 @@ func _ready() -> void:
 	_info.visible = false
 	_log.visible = false
 	_duel = _create_duel()
+	if _duel == null and Assets.has_method("reload"):
+		Assets.reload()
+		_duel = _create_duel()
 	if _duel == null:
 		_log.text = "Faltan los datos del motor de duelo."
 		_log.visible = true

@@ -520,7 +520,8 @@ func _same_machine(a: String, b: String) -> bool:
 
 
 func _my_legendary_list() -> Array:
-	var d := SaveData.deck(game)
+	var sd := get_node_or_null("/root/SaveData")
+	var d: Dictionary = sd.deck(game) if sd != null else {}
 	var res := Array()
 	for cid_v in d.get("main", []):
 		var cid := int(cid_v)

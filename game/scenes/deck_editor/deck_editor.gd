@@ -174,6 +174,8 @@ var _deck := {"main": [], "side": [], "fusion": []}
 var _trunk: Array[Dictionary] = []  # cartas usables que se tienen
 var _view: Array[Dictionary] = []   # la bolsa tras filtro y orden
 var _filter := "all"
+var _search_query := ""
+var _search_box: LineEdit
 var _sort := "default"
 var _expanded := false
 var _bag_progress := 0             # Y4538a0 +11c: 0..256, 25 por tick
@@ -272,6 +274,15 @@ func _init(game_id: String, mode := "edit") -> void:
 
 
 func _ready() -> void:
+	_search_box = LineEdit.new()
+	_search_box.placeholder_text = "ابحث عن ورقة (عربي / English)..."
+	_search_box.position = Vector2(20, 12)
+	_search_box.size = Vector2(280, 36)
+	_search_box.text_changed.connect(func(t: String):
+		_search_query = t.strip_edges().to_lower()
+		_apply_view()
+	)
+	add_child(_search_box)
 	for name in ["kabegami", "kaban_list", "kaban_detail", "kaban_bar", "font", "btn_back",
 			"btn_load", "btn_save", "deckerror", "15deckerror", "kbtn_all", "kbtn_win", "kbtn_nor",
 			"kbtn_eff", "kbtn_fus", "kbtn_mag", "kbtn_trp", "kbtn_rit", "filter", "export", "import",
@@ -357,7 +368,8 @@ func _apply_view() -> void:
 	_view.clear()
 	for card in _trunk:
 		if _filter == "all" or CardDB.group_of(card) == _filter_group(_filter):
-			_view.append(card)
+			if _search_query == "" or _matches_search(card):
+				_view.append(card)
 	if _sort != "default":
 		_sort_records(_view, func(card): return _native_sort_key(card, _sort))
 	_trunk_cursor = maxi(0, _view.find(current)) if not current.is_empty() else 0
@@ -1339,8 +1351,8 @@ func _leave() -> void:
 	for cid_v in _deck.get("side", []): all_ids.append(int(cid_v))
 	var has_ori := all_ids.has(1927)
 	var has_light := false
-	for lid in:
-		if all_ids.has(lid): has_light = true
+	for lid in all_ids:
+		if lid >= 1924 and lid <= 1930 and lid != 1927: has_light = true
 	if has_ori and has_light:
 		var w := AcceptDialog.new()
 		w.title = "تنبيه قوانين المجموعة"
@@ -2511,3 +2523,10 @@ func _advance_new() -> void:
 	for row in _new_rows.keys():
 		if not active.has(row):
 			_new_rows.erase(row)
+
+func _matches_search(card: Dictionary) -> bool:
+	var names: Dictionary = card.get("names", {})
+	for lang in names.keys():
+		if str(names[lang]).to_lower().contains(_search_query):
+			return true
+	return false
