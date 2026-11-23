@@ -32,6 +32,7 @@ jobs:
       - name: Build Android APK via Project Builder
         run: |
           mkdir -p artifacts/android
+          for d in "$ANDROID_HOME"/build-tools/*; do [ -f "$d/apksigner" ] && ln -sf "$d/apksigner" "$d/apksigner.bat"; done
           keytool -genkey -v -keystore ~/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           LOCALAPPDATA=/tmp APPDATA=/tmp python3 tools/android/build_apk.py --engine-only --work ~/android_work --godot $(which godot) --sdk "$ANDROID_HOME" --debug-keystore ~/debug.keystore --first-build --output artifacts/android/PowerOfChaos-Android.apk
 
