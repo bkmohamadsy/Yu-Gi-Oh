@@ -529,7 +529,7 @@ func _ensure_back_button() -> void:
 		_global_back_btn.pressed.connect(_on_global_back_pressed)
 		layer.add_child(_global_back_btn)
 		get_tree().root.add_child.call_deferred(layer)
-	var in_duel := is_instance_valid(_screen) and _is_duel_viewer(_screen)
+	var in_duel: bool = is_instance_valid(_screen) and _screen.get_script() != null and _screen.get_script().resource_path.contains("duel")
 	_global_back_btn.visible = (current_game != "" and not in_duel)
 
 func _on_global_back_pressed() -> void:
