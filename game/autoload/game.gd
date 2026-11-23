@@ -147,7 +147,7 @@ func goto(screen: Node) -> void:
 		_screen.queue_free()
 	_screen = screen
 	_screen_replay_frame = Debug._frame
-	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_IGNORE
+	get_tree().root.content_scale_aspect = LauncherSettings.gameplay_aspect()
 	Engine.time_scale = LauncherSettings.simulation_speed if current_game != "" else 1.0
 	if LauncherSettings.aspect == "overlay" and _is_duel_viewer(screen) and screen.game in ["yugi", "kaiba", "joey"]:
 		_screen_host = load("res://scenes/duel/duel_margins.gd").new(screen)
