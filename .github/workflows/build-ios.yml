@@ -43,8 +43,8 @@ jobs:
           path: artifacts/android/PowerOfChaos-Android.apk
 
   build-ios:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,12 +60,14 @@ jobs:
         run: |
           mkdir -p artifacts/ios/Payload
           godot --headless --path game --export-pack "iOS" ../artifacts/ios/game.pck
-          TEMPLATE_ZIP=$(find "$HOME/.local/share/godot/export_templates" -name "ios.zip" | head -n 1)
+          TEMPLATE_ZIP=$(find "$HOME/Library/Application Support/Godot/export_templates" -name "ios.zip" | head -n 1)
           unzip -q "$TEMPLATE_ZIP" -d artifacts/ios/tpl
-          APP_DIR=$(find artifacts/ios/tpl -name "*.app" | head -n 1)
-          cp -r "$APP_DIR" artifacts/ios/Payload/PowerOfChaos.app
-          cp artifacts/ios/game.pck artifacts/ios/Payload/PowerOfChaos.app/PowerOfChaos.pck
-          cd artifacts/ios
+          cd artifacts/ios/tpl
+          cp ../game.pck godot_ios.pck
+          xcodebuild -project godot_ios.xcodeproj -scheme godot_ios -configuration Release -sdk iphoneos CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO CONFIGURATION_BUILD_DIR=../build
+          cd ..
+          cp -r build/godot_ios.app Payload/PowerOfChaos.app
+          cp game.pck Payload/PowerOfChaos.app/PowerOfChaos.pck
           zip -r PowerOfChaos-iOS.ipa Payload
 
       - name: Upload iOS IPA
