@@ -519,18 +519,17 @@ func _notification(what: int) -> void:
 			Assets.reload()
 
 func _ensure_back_button() -> void:
-	if _global_back_btn == null:
-		var layer := CanvasLayer.new()
-		layer.layer = 100
-		_global_back_btn = Button.new()
-		_global_back_btn.text = "رجوع ↩"
-		_global_back_btn.position = Vector2(18, 56)
-		_global_back_btn.size = Vector2(110, 42)
-		_global_back_btn.pressed.connect(_on_global_back_pressed)
-		layer.add_child(_global_back_btn)
-		get_tree().root.add_child.call_deferred(layer)
-	var in_duel: bool = is_instance_valid(_screen) and _screen.get_script() != null and _screen.get_script().resource_path.contains("duel")
-	_global_back_btn.visible = (current_game != "" and not in_duel)
+	if not is_instance_valid(_screen) or current_game == "":
+		return
+	var in_duel: bool = _screen.get_script() != null and _screen.get_script().resource_path.contains("duel")
+	if in_duel:
+		return
+	var btn := Button.new()
+	btn.text = "رجوع ↩"
+	btn.position = Vector2(18, 56)
+	btn.size = Vector2(110, 42)
+	btn.pressed.connect(_on_global_back_pressed)
+	_screen.add_child(btn)
 
 func _on_global_back_pressed() -> void:
 	if not is_instance_valid(_screen): return
