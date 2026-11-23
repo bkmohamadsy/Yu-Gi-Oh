@@ -1,4 +1,4 @@
-extends CanvasLayer
+﻿extends CanvasLayer
 
 
 
@@ -69,18 +69,18 @@ const ACTION_NAMES: = {
 }
 
 const ACTION_KEYS: = {
-	1: ["action_summon", "استدعاء", "Summon"], 
-	2: ["action_change_position", "تغيير الوضعية", "Change Position"], 
-	3: ["action_attack", "هجوم", "Attack"], 
-	4: ["action_activate", "تفعيل", "Activate"], 
-	5: ["action_set", "وضع مقلوب", "Set"], 
-	6: ["action_change_position", "تغيير الوضعية", "Change Position"], 
-	7: ["action_change_position", "تغيير الوضعية", "Change Position"], 
-	8: ["action_draw", "سحب", "Draw"], 
-	9: ["action_surrender", "انسحاب", "Surrender"], 
-	10: ["action_fusion", "دمج", "Fusion"], 
-	11: ["action_special_atk", "استدعاء خاص", "Special Summon"], 
-	12: ["action_special_def", "استدعاء خاص (دفاع)", "Special Summon (DEF)"], 
+	1: ["action_summon", "Ø§Ø³ØªØ¯Ø¹Ø§Ø¡", "Summon"], 
+	2: ["action_change_position", "ØªØºÙŠÙŠØ± Ø§Ù„ÙˆØ¶Ø¹ÙŠØ©", "Change Position"], 
+	3: ["action_attack", "Ù‡Ø¬ÙˆÙ…", "Attack"], 
+	4: ["action_activate", "ØªÙØ¹ÙŠÙ„", "Activate"], 
+	5: ["action_set", "ÙˆØ¶Ø¹ Ù…Ù‚Ù„ÙˆØ¨", "Set"], 
+	6: ["action_change_position", "ØªØºÙŠÙŠØ± Ø§Ù„ÙˆØ¶Ø¹ÙŠØ©", "Change Position"], 
+	7: ["action_change_position", "ØªØºÙŠÙŠØ± Ø§Ù„ÙˆØ¶Ø¹ÙŠØ©", "Change Position"], 
+	8: ["action_draw", "Ø³Ø­Ø¨", "Draw"], 
+	9: ["action_surrender", "Ø§Ù†Ø³Ø­Ø§Ø¨", "Surrender"], 
+	10: ["action_fusion", "Ø¯Ù…Ø¬", "Fusion"], 
+	11: ["action_special_atk", "Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ø®Ø§Øµ", "Special Summon"], 
+	12: ["action_special_def", "Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ Ø®Ø§Øµ (Ø¯ÙØ§Ø¹)", "Special Summon (DEF)"], 
 }
 
 
@@ -104,7 +104,7 @@ func _action_label_text(action_id: int) -> String:
 	if ACTION_KEYS.has(action_id):
 		var spec: Array = ACTION_KEYS[action_id]
 		return _tr_ui(spec[0], spec[1], spec[2])
-	return _tr_ui("action_choose", "اختيار", ACTION_NAMES.get(action_id, "Choose"))
+	return _tr_ui("action_choose", "Ø§Ø®ØªÙŠØ§Ø±", ACTION_NAMES.get(action_id, "Choose"))
 
 
 func _scene_point(point: Vector2) -> Vector2:
@@ -815,15 +815,15 @@ func _show_at(point: Vector2) -> void :
 			var is_deck: bool = is_instance_valid(Game._screen) and str(Game._screen.get_script().resource_path).ends_with("deck_editor.gd")
 			if is_deck:
 				if Game._screen._button_at(_scene_point(point)) == "filter_label":
-					button.text = _tr_ui("next_filter", "الفلتر التالي", "Next filter") if i == 0 else _tr_ui("prev_filter", "الفلتر السابق", "Prev filter")
+					button.text = _tr_ui("next_filter", "Ø§Ù„ÙÙ„ØªØ± Ø§Ù„ØªØ§Ù„ÙŠ", "Next filter") if i == 0 else _tr_ui("prev_filter", "Ø§Ù„ÙÙ„ØªØ± Ø§Ù„Ø³Ø§Ø¨Ù‚", "Prev filter")
 				elif i == 0:
-					button.text = _tr_ui("select", "تحديد", "Select")
+					button.text = _tr_ui("select", "ØªØ­Ø¯ÙŠØ¯", "Select")
 				else:
-					button.text = _tr_ui("drop_selection", "إفلات", "Drop") if Game._screen._held != 0 else _tr_ui("sort", "ترتيب", "Sort")
+					button.text = _tr_ui("drop_selection", "Ø¥ÙÙ„Ø§Øª", "Drop") if Game._screen._held != 0 else _tr_ui("sort", "ØªØ±ØªÙŠØ¨", "Sort")
 			else:
-				button.text = _tr_ui("click", "نقرة", "Click") if i == 0 else _tr_ui("right_click", "خيارات", "Right Click")
+				button.text = _tr_ui("click", "Ù†Ù‚Ø±Ø©", "Click") if i == 0 else _tr_ui("right_click", "Ø®ÙŠØ§Ø±Ø§Øª", "Right Click")
 	_style_action_button(_cancel_btn, true)
-	_cancel_btn.text = _tr_ui("cancel", "إلغاء", "Cancel")
+	_cancel_btn.text = _tr_ui("cancel", "Ø¥Ù„ØºØ§Ø¡", "Cancel")
 	_cancel_btn.visible = true
 	_menu.reset_size()
 	var bar_size: = _menu.get_combined_minimum_size()
@@ -1100,7 +1100,7 @@ func _target_selection(scene: Node) -> bool:
 	var d = scene._duel
 	if not d.dialog_open.is_empty() or not d.list_open.is_empty():
 		return false
-	if d is JoeyPresentationAdapter:
+	if d != null and d.get_script() != null and d.get_script().resource_path.ends_with("joey_presentation_adapter.gd"):
 		if d.engine == null:
 			return false
 		var em = d.engine.m
@@ -1135,7 +1135,7 @@ func _response_cancel_active(scene: Node) -> bool:
 	var guard: = get_node_or_null("/root/BackNavigationGuard")
 	if guard != null and guard.has_method("is_modal_open") and guard.is_modal_open():
 		return false
-	if d is JoeyPresentationAdapter:
+	if d != null and d.get_script() != null and d.get_script().resource_path.ends_with("joey_presentation_adapter.gd"):
 		if d.engine == null:
 			return false
 		var em = d.engine.m
@@ -1177,7 +1177,7 @@ func _update_response_cancel_button() -> void :
 		if _response_cancel_panel.visible:
 			_response_cancel_panel.hide()
 		return
-	var label: = _tr_ui("response_cancel_activation", "إلغاء التفعيل", "Cancel Activation")
+	var label: = _tr_ui("response_cancel_activation", "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªÙØ¹ÙŠÙ„", "Cancel Activation")
 	if _response_cancel_btn.text != label:
 		_response_cancel_btn.text = label
 	var bridge: = _bridge()
@@ -1230,11 +1230,11 @@ func _update_tribute_hint() -> void :
 	var state: int = d.m.u8(10564621)
 	if state not in [2, 3, 4, 5, 10, 11]: return
 	if state in [10, 11]:
-		_tribute_hint.text = _tr_ui("tribute_hint_select", "اختر وحشاً للتضحية به", "Tap a monster to Tribute")
+		_tribute_hint.text = _tr_ui("tribute_hint_select", "Ø§Ø®ØªØ± ÙˆØ­Ø´Ø§Ù‹ Ù„Ù„ØªØ¶Ø­ÙŠØ© Ø¨Ù‡", "Tap a monster to Tribute")
 	elif state in [2, 3]:
-		_tribute_hint.text = _tr_ui("tribute_hint_first", "اختر التضحية الأولى", "Select 1st Tribute")
+		_tribute_hint.text = _tr_ui("tribute_hint_first", "Ø§Ø®ØªØ± Ø§Ù„ØªØ¶Ø­ÙŠØ© Ø§Ù„Ø£ÙˆÙ„Ù‰", "Select 1st Tribute")
 	else:
-		_tribute_hint.text = _tr_ui("tribute_hint_second", "اختر التضحية الثانية", "Select 2nd Tribute")
+		_tribute_hint.text = _tr_ui("tribute_hint_second", "Ø§Ø®ØªØ± Ø§Ù„ØªØ¶Ø­ÙŠØ© Ø§Ù„Ø«Ø§Ù†ÙŠØ©", "Select 2nd Tribute")
 	var bridge: = _bridge()
 	if bridge != null:
 		bridge.apply_rtl_control(_tribute_hint, _is_arabic())
@@ -1242,3 +1242,4 @@ func _update_tribute_hint() -> void :
 	_tribute_hint.position = bounds.position + Vector2(4, 8)
 	_tribute_hint.size = Vector2(bounds.size.x - 8, 36)
 	_tribute_hint.show()
+
