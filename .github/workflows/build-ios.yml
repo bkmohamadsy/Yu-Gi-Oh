@@ -24,16 +24,16 @@ jobs:
 
       - name: Setup Godot & Templates
         run: |
-          mkdir -p ~/godot_tools ~/.local/share/godot/export_templates/4.7.2.stable
+          mkdir -p ~/godot_tools ~/.local/share/godot/export_templates/4.4.1.stable
           cd ~/godot_tools
-          curl -fSL -o godot.zip "https://github.com" || curl -fSL -o godot.zip "https://github.com"
+          curl -fSL -o godot.zip "https://github.com"
           unzip -q godot.zip
           mv Godot_v* godot_bin
           chmod +x godot_bin
-          curl -fSL -o templates.tpz "https://github.com" || curl -fSL -o templates.tpz "https://github.com"
+          curl -fSL -o templates.tpz "https://github.com"
           unzip -q templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.7.2.stable/
-          cp -r ~/.local/share/godot/export_templates/4.7.2.stable ~/.local/share/godot/export_templates/4.6.stable
+          mv templates/* ~/.local/share/godot/export_templates/4.4.1.stable/
+          cp -r ~/.local/share/godot/export_templates/4.4.1.stable ~/.local/share/godot/export_templates/4.7.2.stable
 
       - name: Configure Godot Android SDK Path & Debug Keystore
         run: |
@@ -61,14 +61,14 @@ jobs:
 
       - name: Setup Godot & Templates
         run: |
-          mkdir -p ~/godot_tools ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable
+          mkdir -p ~/godot_tools ~/Library/Application\ Support/Godot/export_templates/4.4.1.stable
           cd ~/godot_tools
-          curl -fSL -o godot.zip "https://github.com" || curl -fSL -o godot.zip "https://github.com"
+          curl -fSL -o godot.zip "https://github.com"
           unzip -q godot.zip
-          curl -fSL -o templates.tpz "https://github.com" || curl -fSL -o templates.tpz "https://github.com"
+          curl -fSL -o templates.tpz "https://github.com"
           unzip -q templates.tpz
-          mv templates/* ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable/
-          cp -r ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable ~/Library/Application\ Support/Godot/export_templates/4.6.stable
+          mv templates/* ~/Library/Application\ Support/Godot/export_templates/4.4.1.stable/
+          cp -r ~/Library/Application\ Support/Godot/export_templates/4.4.1.stable ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable
 
       - name: Export iOS Xcode Project
         run: |
