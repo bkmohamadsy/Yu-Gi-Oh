@@ -49,12 +49,7 @@ func _resolve_data_dir() -> String:
 	var override := cmdline_value("data")
 	if override != "":
 		return override
-	# A full private APK mounts its embedded assets and first preserves the pack
-	# in app storage. Later engine-only APKs mount that same persistent copy.
-	if FileAccess.file_exists("res://bundled_data.pck") and ProjectSettings.load_resource_pack("res://bundled_data.pck", false):
-		content_pack_persistent = preserve_embedded_content_pack() if OS.has_feature("android") else false
-		if OS.has_feature("android") and not content_pack_persistent:
-			push_warning("The game can run from this APK, but its data could not be preserved for an engine-only update.")
+	if ProjectSettings.load_resource_pack("res://bundled_data.pck", false):
 		return "res://data"
 	if OS.has_feature("android"):
 		if mount_user_content_pack():
@@ -80,6 +75,7 @@ func _resolve_data_dir() -> String:
 	if OS.has_feature("editor") and FileAccess.file_exists(_base_dir().path_join("data/inventory.json")):
 		return _base_dir().path_join("data")
 	return portable
+
 
 
 func _resolve_save_dir() -> String:
