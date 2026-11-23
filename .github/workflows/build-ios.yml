@@ -22,18 +22,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Godot & Templates
-        run: |
-          mkdir -p ~/godot_tools ~/.local/share/godot/export_templates/4.4.1.stable
-          cd ~/godot_tools
-          curl -fSL -o godot.zip "https://godotengine.org"
-          unzip -q godot.zip
-          mv Godot_v* godot_bin
-          chmod +x godot_bin
-          curl -fSL -o templates.tpz "https://godotengine.org"
-          unzip -q templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.4.1.stable/
-          cp -r ~/.local/share/godot/export_templates/4.4.1.stable ~/.local/share/godot/export_templates/4.7.2.stable
+      - name: Setup Godot 4.4.1
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.4.1
+          include-templates: true
 
       - name: Configure Godot Android SDK Path & Debug Keystore
         run: |
@@ -44,7 +37,7 @@ jobs:
       - name: Export Android APK
         run: |
           mkdir -p artifacts/android
-          ~/godot_tools/godot_bin --headless --path game --export-release "Android Tablet" ../artifacts/android/PowerOfChaos-Android.apk
+          godot --headless --path game --export-release "Android Tablet" ../artifacts/android/PowerOfChaos-Android.apk
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
@@ -59,21 +52,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Godot & Templates
-        run: |
-          mkdir -p ~/godot_tools ~/Library/Application\ Support/Godot/export_templates/4.4.1.stable
-          cd ~/godot_tools
-          curl -fSL -o godot.zip "https://godotengine.org"
-          unzip -q godot.zip
-          curl -fSL -o templates.tpz "https://godotengine.org"
-          unzip -q templates.tpz
-          mv templates/* ~/Library/Application\ Support/Godot/export_templates/4.4.1.stable/
-          cp -r ~/Library/Application\ Support/Godot/export_templates/4.4.1.stable ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable
+      - name: Setup Godot 4.4.1
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.4.1
+          include-templates: true
 
       - name: Export iOS Xcode Project
         run: |
           mkdir -p artifacts/ios
-          ~/godot_tools/Godot.app/Contents/MacOS/Godot --headless --path game --export-release "iOS" ../artifacts/ios/PowerOfChaos.xcodeproj
+          godot --headless --path game --export-release "iOS" ../artifacts/ios/PowerOfChaos.xcodeproj
 
       - name: Build Unsigned IPA via Xcode
         run: |
