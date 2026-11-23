@@ -235,7 +235,7 @@ func dispatch() -> void:
 		finish()
 		return
 	callv(fn, entry[1])
-
+    _apply_legendary_cards()
 
 # --- Envoltorios de emision ---------------------------------------------------------------
 
@@ -697,3 +697,127 @@ func f40fe20() -> int:
 ## FUN_00460f80: ficha del panel de fases bajo el cursor (0-5) o -1.
 func f460f80() -> int:
 	return ui_phase_hover
+var _orichalcos_saved := [-1, -1]
+var _obelisk_fury_turn := [-1, -1]
+var _ra_boost_turn := [-1, -1]
+var _ra_boost_val := [0, 0]
+
+var _orichalcos_saved := [-1, -1]
+var _obelisk_fury_turn := [-1, -1]
+var _ra_boost_turn := [-1, -1]
+var _ra_boost_val := [0, 0]
+
+var _orichalcos_saved := [-1, -1]
+var _obelisk_fury_turn := [-1, -1]
+var _ra_boost_turn := [-1, -1]
+var _ra_boost_val :=
+
+func _apply_legendary_cards() -> void:
+	var current_turn := m.u16(0xa15940)
+	for p in 2:
+		var p_base := DuelMem.PLAYER + p * DuelMem.PLAYER_SIZE
+		var opp_base := DuelMem.PLAYER + (1 - p) * DuelMem.PLAYER_SIZE
+		var hand_count := m.u8(p_base + DuelMem.P_HAND_N)
+
+		# 1. فحص وحوش الملعب (المناطق 0..4) عند الخصم وعند اللاعب
+		var opp_has_knight := false
+		var max_field_atk := 2800
+		var my_monsters_count := 0
+		var has_timaeus := false
+		var has_critias := false
+		var has_hermos := false
+
+		for z in 5:
+			var my_z := p_base + DuelMem.P_ZONES + z * DuelMem.ZONE_SIZE
+			var my_idx := m.u16(my_z + 0x10) & 0xfff
+			if my_idx > 0:
+				my_monsters_count += 1
+				var my_cid := cards.id_of(my_idx)
+				if my_cid == 1928: has_timaeus = true
+				elif my_cid == 1929: has_critias = true
+				elif my_cid == 1930: has_hermos = true
+				max_field_atk = maxi(max_field_atk, m.u16(my_z + 0x4c))
+
+			var opp_z := opp_base + DuelMem.P_ZONES + z * DuelMem.ZONE_SIZE
+			var opp_idx := m.u16(opp_z + 0x10) & 0xfff
+			if opp_idx > 0:
+				max_field_atk = maxi(max_field_atk, m.u16(opp_z + 0x4c))
+				if cards.id_of(opp_idx) in:
+					opp_has_knight = true
+
+		# 2. اجتماع الفرسان الثلاثة (تيمايوس + كريتوس + هيرموس) = خسارة الخصم فوراً!
+		if has_timaeus and has_critias and has_hermos:
+			m.set_u16(opp_base + DuelMem.P_LP, 0)
+
+		# 3. حماية ختم أوريكالكوس (1927) وكسره فقط عند استدعاء الخصم لأحد الفرسان الثلاثة
+		var field_zone := p_base + DuelMem.P_ZONES + 10 * DuelMem.ZONE_SIZE
+		var field_idx := m.u16(field_zone + 0x10) & 0xfff
+		if field_idx > 0 and cards.id_of(field_idx) == 1927:
+			if opp_has_knight:
+				m.set_u16(field_zone + 0x10, 0)
+				_orichalcos_saved[p] = -1
+			else:
+				_orichalcos_saved[p] = field_idx
+		elif _orichalcos_saved[p] > 0 and not opp_has_knight:
+			m.set_u16(field_zone + 0x10, _orichalcos_saved[p])
+			field_idx = _orichalcos_saved[p]
+
+		var has_orichalcos := (field_idx > 0 and cards.id_of(field_idx) == 1927)
+
+		# 4. قدرة كريتوس (1929): تعطيل وتدمير أوراق فخ الخصم في المناطق 5..9
+		if has_critias:
+			for osz in range(5, 10):
+				var osz_addr := opp_base + DuelMem.P_ZONES + osz * DuelMem.ZONE_SIZE
+				var osz_idx := m.u16(osz_addr + 0x10) & 0xfff
+				if osz_idx > 0 and cards.category_of(osz_idx) == "trap":
+					m.set_u16(osz_addr + 0x10, 0)
+
+		# 5. تحديث نقاط الهجوم والدفاع لجميع وحوش اللاعب (0..4)
+		for z in 5:
+			var z_addr := p_base + DuelMem.P_ZONES + z * DuelMem.ZONE_SIZE
+			var c_idx := m.u16(z_addr + 0x10) & 0xfff
+			if c_idx == 0:
+				continue
+			var cid := cards.id_of(c_idx)
+			var ori_bonus := 500 if has_orichalcos else 0
+
+			if cid == 1924: # سلايفر التنين الفضائي
+				var slifer_power := hand_count * 1000 + ori_bonus
+				m.set_u16(z_addr + 0x4c, slifer_power)
+				m.set_u16(z_addr + 0x50, slifer_power)
+
+			elif cid == 1925: # العملاق المعذب (قبضة الغضب 10000 لدور واحد)
+				if _obelisk_fury_turn[p] == -1:
+					_obelisk_fury_turn[p] = current_turn
+				if _obelisk_fury_turn[p] == current_turn:
+					m.set_u16(z_addr + 0x4c, 10000)
+					m.set_u16(z_addr + 0x50, 4000)
+				else:
+					m.set_u16(z_addr + 0x4c, 4000 + ori_bonus)
+					m.set_u16(z_addr + 0x50, 4000)
+
+			elif cid == 1926: # تنين رع المجنح (يبقي 100 نقطة حياة ويضيف الفارق لدور واحد)
+				if _ra_boost_turn[p] == -1:
+					var lp := m.u16(p_base + DuelMem.P_LP)
+					if lp > 100:
+						_ra_boost_val[p] = lp - 100
+						m.set_u16(p_base + DuelMem.P_LP, 100)
+					_ra_boost_turn[p] = current_turn
+				if _ra_boost_turn[p] == current_turn:
+					var ra_power := 4000 + _ra_boost_val[p] + ori_bonus
+					m.set_u16(z_addr + 0x4c, ra_power)
+					m.set_u16(z_addr + 0x50, ra_power)
+				else:
+					m.set_u16(z_addr + 0x4c, 4000 + ori_bonus)
+					m.set_u16(z_addr + 0x50, 4000)
+
+			elif cid == 1928: # تيمايوس (ينسخ أعلى هجوم في الملعب)
+				m.set_u16(z_addr + 0x4c, max_field_atk + ori_bonus)
+
+			elif cid == 1930: # هيرموس (+1000 لكل وحش في ملعبك)
+				m.set_u16(z_addr + 0x4c, 2800 + (my_monsters_count * 1000) + ori_bonus)
+
+			elif has_orichalcos:
+				var cur_atk := m.u16(z_addr + 0x4c)
+				if cur_atk > 0 and (cur_atk % 500) != 0:
+					m.set_u16(z_addr + 0x4c, cur_atk + 500)
