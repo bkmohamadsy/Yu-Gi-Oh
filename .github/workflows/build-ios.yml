@@ -33,7 +33,8 @@ jobs:
         run: |
           mkdir -p artifacts/android
           keytool -genkey -v -keystore ~/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          LOCALAPPDATA=/tmp python3 tools/android/build_apk.py --work ~/android_work --godot $(which godot) --sdk "$ANDROID_HOME" --debug-keystore ~/debug.keystore --first-build --output artifacts/android/PowerOfChaos-Android.apk
+          LOCALAPPDATA=/tmp APPDATA=/tmp python3 tools/android/build_apk.py --work ~/android_work --godot $(which godot) --sdk "$ANDROID_HOME" --debug-keystore ~/debug.keystore --first-build --output artifacts/android/PowerOfChaos-Android.apk
+
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
