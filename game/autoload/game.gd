@@ -91,7 +91,7 @@ func _ready() -> void:
 	if language == "":
 		language = Assets.preferred_language()
 	Assets.set_language(language)
-	if OS.has_feature("mobile") or Paths.cmdline_value("mobile-controls") == "true":
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios") or Paths.cmdline_value("mobile-controls") == "true":
 		_mobile_pointer = preload("res://core/mobile_pointer.gd").new()
 		get_tree().root.add_child.call_deferred(_mobile_pointer)
 	get_tree().root.add_child.call_deferred(_window_shortcuts)
@@ -104,7 +104,6 @@ func _ready() -> void:
 	_add_key_action("pc_filter", KEY_F)     # editor de mazos: siguiente filtro de la bolsa
 	_add_key_action("pc_sort", KEY_O)       # editor de mazos: ventana de orden
 	_add_key_action("pc_window", KEY_W)     # editor de mazos: plegar/desplegar la bolsa
-
 
 func _add_key_action(action: String, key: Key) -> void:
 	if InputMap.has_action(action):
@@ -148,7 +147,7 @@ func goto(screen: Node) -> void:
 		_screen.queue_free()
 	_screen = screen
 	_screen_replay_frame = Debug._frame
-	get_tree().root.content_scale_aspect = LauncherSettings.gameplay_aspect()
+	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_IGNORE
 	Engine.time_scale = LauncherSettings.simulation_speed if current_game != "" else 1.0
 	if LauncherSettings.aspect == "overlay" and _is_duel_viewer(screen) and screen.game in ["yugi", "kaiba", "joey"]:
 		_screen_host = load("res://scenes/duel/duel_margins.gd").new(screen)
