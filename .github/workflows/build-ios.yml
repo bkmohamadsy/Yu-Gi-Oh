@@ -22,12 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Android Build Tools & Platform
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-      - name: Setup Godot 4.7.2 & Templates
+      - name: Setup Godot & Templates
         run: |
           mkdir -p ~/godot_tools ~/.local/share/godot/export_templates/4.7.2.stable
           cd ~/godot_tools
@@ -64,7 +59,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Godot 4.7.2 & Templates
+      - name: Setup Godot & Templates
         run: |
           mkdir -p ~/godot_tools ~/Library/Application\ Support/Godot/export_templates/4.7.2.stable
           cd ~/godot_tools
