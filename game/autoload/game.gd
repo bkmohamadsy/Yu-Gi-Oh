@@ -506,11 +506,12 @@ func open_card_list(game: String) -> void:
 
 ## Reconoce también las subclases sin cargar todo el duelo al arrancar.
 func _is_duel_viewer(screen: Node) -> bool:
+	if screen == null:
+		return false
 	var script: Script = screen.get_script()
 	while script != null:
 		if script.resource_path == DUEL_VIEWER_PATH:
 			return true
-		script = script.get_base_script()
 		script = script.get_base_script()
 	return false
 
