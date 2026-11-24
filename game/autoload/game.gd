@@ -522,6 +522,10 @@ func _notification(what: int) -> void:
 	elif what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		_on_safe_back_pressed()
 
+func _is_lan_screen(scr: Node) -> bool:
+	if scr == null or scr.get_script() == null: return false
+	return scr.get_script().resource_path.ends_with("lan_connect.gd")
+
 func _update_safe_back_btn() -> void:
 	if _safe_back_btn == null:
 		var layer := CanvasLayer.new()
@@ -533,10 +537,13 @@ func _update_safe_back_btn() -> void:
 		_safe_back_btn.pressed.connect(_on_safe_back_pressed)
 		layer.add_child(_safe_back_btn)
 		get_tree().root.add_child.call_deferred(layer)
-	var is_menu_subscreen := is_instance_valid(_screen) and not _is_duel_viewer(_screen) and _screen.has_method("_leave")
+	var is_menu_subscreen := is_instance_valid(_screen) and not _is_duel_viewer(_screen) and (_screen.has_method("_leave") or _is_lan_screen(_screen))
 	_safe_back_btn.visible = is_menu_subscreen
 
 func _on_safe_back_pressed() -> void:
 	if not is_instance_valid(_screen): return
-	if _screen.has_method("_leave"):
+	if _is_lan_screen(_screen):
+		Lan.close()
+		open_title(current_game if current_game != "" else "joey")
+	elif _screen.has_method("_leave"):
 		_screen._leave()
